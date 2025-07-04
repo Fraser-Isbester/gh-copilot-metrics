@@ -1,23 +1,24 @@
-import pytest
+from pilot_metrics.models import CopilotData
 from pilot_metrics.processing import flatten_copilot_data
-from pilot_metrics.models import DailyCopilotStats
 
 
 def test_flatten_copilot_data_empty():
     """Test flattening with empty data."""
-    completions, chats = flatten_copilot_data([])
+    completions, chats, pr_data = flatten_copilot_data([])
     assert completions == []
     assert chats == []
+    assert pr_data == []
 
 
 def test_flatten_copilot_data_with_sample():
     """Test flattening with sample data."""
-    sample_stats = [
-        DailyCopilotStats(
-            date="2024-01-15",
-            total_active_users=100,
-            total_engaged_users=80,
-            copilot_ide_code_completions={
+    # Use the same approach as the main code - validate through CopilotData
+    raw_data = [
+        {
+            "date": "2024-01-15",
+            "total_active_users": 100,
+            "total_engaged_users": 80,
+            "copilot_ide_code_completions": {
                 "total_engaged_users": 60,
                 "editors": [
                     {
@@ -44,7 +45,7 @@ def test_flatten_copilot_data_with_sample():
                 ],
                 "languages": [],
             },
-            copilot_ide_chat={
+            "copilot_ide_chat": {
                 "total_engaged_users": 30,
                 "editors": [
                     {
@@ -63,7 +64,7 @@ def test_flatten_copilot_data_with_sample():
                     }
                 ],
             },
-            copilot_dotcom_chat={
+            "copilot_dotcom_chat": {
                 "total_engaged_users": 20,
                 "models": [
                     {
@@ -76,15 +77,19 @@ def test_flatten_copilot_data_with_sample():
                     }
                 ],
             },
-            copilot_dotcom_pull_requests={
+            "copilot_dotcom_pull_requests": {
                 "total_engaged_users": 15,
                 "repositories": [],
             },
-        )
+        }
     ]
-    
-    completions, chats = flatten_copilot_data(sample_stats)
-    
+
+    # Parse through CopilotData to get properly validated models
+    copilot_data = CopilotData.model_validate(raw_data)
+    sample_stats = copilot_data.root
+
+    completions, chats, pr_data = flatten_copilot_data(sample_stats)
+
     # Test completions data
     assert len(completions) == 1
     completion = completions[0]
@@ -94,17 +99,17 @@ def test_flatten_copilot_data_with_sample():
     assert completion["language"] == "python"
     assert completion["total_code_acceptances"] == 100
     assert completion["total_code_lines_accepted"] == 200
-    
+
     # Test chats data
     assert len(chats) == 2  # One IDE chat + one dotcom chat
-    
+
     ide_chat = next(chat for chat in chats if chat["chat_type"] == "ide")
     assert ide_chat["date"] == "2024-01-15"
     assert ide_chat["editor"] == "vscode"
     assert ide_chat["model"] == "gpt-4"
     assert ide_chat["total_chats"] == 50
     assert ide_chat["total_chat_copy_events"] == 10
-    
+
     dotcom_chat = next(chat for chat in chats if chat["chat_type"] == "dotcom")
     assert dotcom_chat["date"] == "2024-01-15"
     assert dotcom_chat["editor"] is None
@@ -115,17 +120,17 @@ def test_flatten_copilot_data_with_sample():
 
 def test_flatten_handles_none_values():
     """Test that flattening handles None values correctly."""
-    sample_stats = [
-        DailyCopilotStats(
-            date="2024-01-15",
-            total_active_users=100,
-            total_engaged_users=80,
-            copilot_ide_code_completions={
+    raw_data = [
+        {
+            "date": "2024-01-15",
+            "total_active_users": 100,
+            "total_engaged_users": 80,
+            "copilot_ide_code_completions": {
                 "total_engaged_users": 0,
                 "editors": [],
                 "languages": [],
             },
-            copilot_ide_chat={
+            "copilot_ide_chat": {
                 "total_engaged_users": 30,
                 "editors": [
                     {
@@ -144,16 +149,23 @@ def test_flatten_handles_none_values():
                     }
                 ],
             },
-            copilot_dotcom_chat={"total_engaged_users": 0, "models": []},
-            copilot_dotcom_pull_requests={"total_engaged_users": 0, "repositories": []},
-        )
+            "copilot_dotcom_chat": {"total_engaged_users": 0, "models": []},
+            "copilot_dotcom_pull_requests": {
+                "total_engaged_users": 0,
+                "repositories": [],
+            },
+        }
     ]
-    
-    completions, chats = flatten_copilot_data(sample_stats)
-    
+
+    # Parse through CopilotData to get properly validated models
+    copilot_data = CopilotData.model_validate(raw_data)
+    sample_stats = copilot_data.root
+
+    completions, chats, pr_data = flatten_copilot_data(sample_stats)
+
     assert len(completions) == 0  # No completion data
     assert len(chats) == 1  # One IDE chat
-    
+
     chat = chats[0]
     assert chat["total_chat_copy_events"] == 0  # None converted to 0
     assert chat["total_chat_insertion_events"] == 0  # None converted to 0

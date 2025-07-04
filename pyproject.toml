@@ -31,7 +31,8 @@ ignore = []
 [tool.ruff.format]
 quote-style = "double"
 
-[tool.ty]
+[tool.ty.src]
+exclude = ["tests/"]
 
 [dependency-groups]
 dev = [

@@ -9,6 +9,8 @@ A command-line tool for processing, analyzing, and visualizing GitHub Copilot us
   - Accepted lines of code by editor (pie chart)
   - Unique active users per day
   - Acceptance rate by language
+  - PR summaries by repository
+  - Chat effectiveness (copy/insert rates)
 - **BigQuery Integration**: Upload processed metrics to Google BigQuery
 - **Unix-friendly**: Accepts data from files or stdin
 

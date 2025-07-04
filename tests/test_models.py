@@ -1,13 +1,10 @@
 import pytest
+
 from pilot_metrics.models import (
-    LanguageMetrics,
     ChatModel,
     CopilotData,
     DailyCopilotStats,
-    CopilotIdeCodeCompletions,
-    CopilotIdeChat,
-    CopilotDotComChat,
-    CopilotDotComPullRequests,
+    LanguageMetrics,
 )
 
 
@@ -77,7 +74,7 @@ def test_copilot_data_validation():
             },
         }
     ]
-    
+
     copilot_data = CopilotData.model_validate(sample_data)
     assert len(copilot_data.root) == 1
     assert copilot_data.root[0].date == "2024-01-15"
@@ -108,7 +105,7 @@ def test_daily_copilot_stats():
             "repositories": [],
         },
     }
-    
+
     stats = DailyCopilotStats(**data)
     assert stats.date == "2024-01-15"
     assert stats.total_active_users == 100
@@ -117,8 +114,8 @@ def test_daily_copilot_stats():
 
 def test_invalid_data():
     """Test that invalid data raises validation errors."""
-    with pytest.raises(Exception):  # Pydantic validation error
+    with pytest.raises(ValueError):  # Pydantic validation error
         LanguageMetrics(name=123)  # name should be string
-    
-    with pytest.raises(Exception):
+
+    with pytest.raises(ValueError):
         ChatModel(name="test", is_custom_model="not_boolean")  # should be boolean

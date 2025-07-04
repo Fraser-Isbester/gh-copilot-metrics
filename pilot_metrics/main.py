@@ -30,7 +30,7 @@ def load_data(input_file: str) -> list:
     else:
         console.print(f"[cyan]Reading data from '{input_file}'...[/cyan]")
         try:
-            with open(input_file, 'r') as f:
+            with open(input_file) as f:
                 raw_data = json.load(f)
         except FileNotFoundError:
             console.print(f"[bold red]Error: File '{input_file}' not found.[/bold red]")
@@ -38,7 +38,7 @@ def load_data(input_file: str) -> list:
         except (json.JSONDecodeError, TypeError):
             console.print("[bold red]Error: Invalid JSON data provided.[/bold red]")
             raise typer.Exit(code=1) from None
-    
+
     try:
         parsed_data = CopilotData.model_validate(raw_data)
         console.print(
@@ -66,7 +66,7 @@ def upload_to_bq(
     Requires GCP_PROJECT_ID and BQ_DATASET env variables.
     """
     daily_stats = load_data(input_file)
-    completions, chats = flatten_copilot_data(daily_stats)
+    completions, chats, pr_data = flatten_copilot_data(daily_stats)
 
     console.print("[cyan]Starting upload to BigQuery...[/cyan]")
     try:
@@ -90,11 +90,11 @@ def visualize(
     Generates a local, interactive HTML dashboard from the data.
     """
     daily_stats = load_data(input_file)
-    completions, _ = flatten_copilot_data(daily_stats)
+    completions, chats, pr_data = flatten_copilot_data(daily_stats)
 
     if not completions:
         console.print("[yellow]No completion data found to visualize.[/yellow]")
         raise typer.Exit()
 
     console.print("[cyan]Generating local dashboard...[/cyan]")
-    create_dashboard(completions)
+    create_dashboard(completions, chats, pr_data)

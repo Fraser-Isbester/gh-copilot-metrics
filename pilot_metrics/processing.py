@@ -5,16 +5,17 @@ from .models import DailyCopilotStats
 
 def flatten_copilot_data(
     daily_stats: list[DailyCopilotStats],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     """
     Flattens nested Copilot data into flat dictionaries for easier analysis.
 
     Returns:
-        Tuple of (completions_data, chats_data) where each is a list
+        Tuple of (completions_data, chats_data, pr_data) where each is a list
         of flat dictionaries
     """
     completions = []
     chats = []
+    pr_summaries = []
 
     for daily_stat in daily_stats:
         date = daily_stat.date
@@ -71,4 +72,17 @@ def flatten_copilot_data(
             }
             chats.append(chat_record)
 
-    return completions, chats
+        # Process PR summaries
+        for repo in daily_stat.copilot_dotcom_pull_requests.repositories:
+            for model in repo.models:
+                pr_record = {
+                    "date": date,
+                    "repository": repo.name,
+                    "model": model.name,
+                    "is_custom_model": model.is_custom_model,
+                    "total_engaged_users": model.total_engaged_users,
+                    "total_pr_summaries_created": model.total_pr_summaries_created,
+                }
+                pr_summaries.append(pr_record)
+
+    return completions, chats, pr_summaries
