@@ -87,6 +87,9 @@ ruff check .
 
 # Type checking
 uv run ty check .
+
+# Run tests
+uv run pytest
 ```
 
 ## Data Format
