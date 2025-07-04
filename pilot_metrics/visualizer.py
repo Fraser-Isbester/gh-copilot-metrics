@@ -36,7 +36,7 @@ def create_dashboard(completions_data: list[dict[str, Any]]) -> None:
             "Acceptance Rate by Language",
         ),
         specs=[
-            [{"secondary_y": False}, {"type": "pie"}],
+            [{"secondary_y": True}, {"type": "pie"}],
             [{"secondary_y": False}, {"secondary_y": False}],
         ],
     )
@@ -65,6 +65,32 @@ def create_dashboard(completions_data: list[dict[str, Any]]) -> None:
             row=1,
             col=1,
         )
+
+    # Add line chart overlay for total lines accepted
+    lines_over_time = (
+        df.groupby("date")["total_code_lines_accepted"]
+        .sum()
+        .reset_index()
+    )
+    
+    fig.add_trace(
+        go.Scatter(
+            x=lines_over_time["date"],
+            y=lines_over_time["total_code_lines_accepted"],
+            mode="lines",
+            name="Total Lines Accepted",
+            line=dict(color="red", width=1, dash="dot"),
+            legendgroup="group1_lines",
+            hovertemplate="<b>Total Lines Accepted</b><br>"
+            + "Date: %{x}<br>"
+            + "Lines: %{y}<br>"
+            + "<extra></extra>",
+            yaxis="y2"
+        ),
+        row=1,
+        col=1,
+        secondary_y=True,
+    )
 
     # 2. Accepted Lines of Code by Editor (Pie Chart)
     editor_accepted_lines = (
@@ -157,6 +183,7 @@ def create_dashboard(completions_data: list[dict[str, Any]]) -> None:
         tickangle=45,  # Rotate labels for better readability
     )
     fig.update_yaxes(title_text="Code Acceptances", row=1, col=1)
+    fig.update_yaxes(title_text="Lines of Code", row=1, col=1, secondary_y=True)
 
     # Note: Pie chart doesn't need axis labels
 
