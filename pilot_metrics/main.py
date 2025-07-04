@@ -1,4 +1,5 @@
 import json
+import sys
 from typing import Annotated
 
 import typer
@@ -17,19 +18,33 @@ app = typer.Typer(
 console = Console()
 
 
-def load_data(input_file: typer.FileText) -> list:
+def load_data(input_file: str) -> list:
     """Load and parse Copilot data from file or stdin."""
-    console.print(f"[cyan]Reading data from '{input_file.name or 'stdin'}'...[/cyan]")
+    if input_file == "-":
+        console.print("[cyan]Reading data from stdin...[/cyan]")
+        try:
+            raw_data = json.load(sys.stdin)
+        except (json.JSONDecodeError, TypeError):
+            console.print("[bold red]Error: Invalid JSON data provided.[/bold red]")
+            raise typer.Exit(code=1) from None
+    else:
+        console.print(f"[cyan]Reading data from '{input_file}'...[/cyan]")
+        try:
+            with open(input_file, 'r') as f:
+                raw_data = json.load(f)
+        except FileNotFoundError:
+            console.print(f"[bold red]Error: File '{input_file}' not found.[/bold red]")
+            raise typer.Exit(code=1) from None
+        except (json.JSONDecodeError, TypeError):
+            console.print("[bold red]Error: Invalid JSON data provided.[/bold red]")
+            raise typer.Exit(code=1) from None
+    
     try:
-        raw_data = json.load(input_file)
         parsed_data = CopilotData.model_validate(raw_data)
         console.print(
             f"[green]Successfully parsed {len(parsed_data.root)} daily records.[/green]"
         )
         return parsed_data.root
-    except (json.JSONDecodeError, TypeError):
-        console.print("[bold red]Error: Invalid JSON data provided.[/bold red]")
-        raise typer.Exit(code=1) from None
     except Exception as e:
         console.print(
             f"[bold red]An unexpected error occurred during parsing: {e}[/bold red]"
@@ -40,7 +55,7 @@ def load_data(input_file: typer.FileText) -> list:
 @app.command()
 def upload_to_bq(
     input_file: Annotated[
-        typer.FileText,
+        str,
         typer.Argument(
             help="Path to the JSON data file. Use '-' to read from stdin.",
         ),
@@ -65,7 +80,7 @@ def upload_to_bq(
 @app.command()
 def visualize(
     input_file: Annotated[
-        typer.FileText,
+        str,
         typer.Argument(
             help="Path to the JSON data file. Use '-' to read from stdin.",
         ),

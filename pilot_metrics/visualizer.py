@@ -1,3 +1,4 @@
+import os
 import webbrowser
 from typing import Any
 
@@ -10,7 +11,7 @@ from plotly.subplots import make_subplots
 def create_dashboard(completions_data: list[dict[str, Any]]) -> None:
     """
     Creates an interactive HTML dashboard from flattened completion data.
-    Saves as 'copilot_dashboard.html' and opens in browser.
+    Saves as 'dashboard.html' and opens in browser.
     """
     if not completions_data:
         print("No completion data to visualize")
@@ -18,7 +19,7 @@ def create_dashboard(completions_data: list[dict[str, Any]]) -> None:
 
     df = pd.DataFrame(completions_data)
     df["date"] = pd.to_datetime(df["date"])
-    
+
     # Calculate timeframe for title
     start_date = df["date"].min().strftime("%Y-%m-%d")
     end_date = df["date"].max().strftime("%Y-%m-%d")
@@ -48,7 +49,7 @@ def create_dashboard(completions_data: list[dict[str, Any]]) -> None:
         .pivot(index="date", columns="language", values="total_code_acceptances")
         .fillna(0)
     )
-    
+
     for language in language_pivot.columns:
         fig.add_trace(
             go.Bar(
@@ -56,10 +57,10 @@ def create_dashboard(completions_data: list[dict[str, Any]]) -> None:
                 y=language_pivot[language],
                 name=f"{language}",
                 legendgroup="group1",
-                hovertemplate="<b>%{fullData.name}</b><br>" +
-                              "Date: %{x}<br>" +
-                              "Acceptances: %{y}<br>" +
-                              "<extra></extra>"
+                hovertemplate="<b>%{fullData.name}</b><br>"
+                + "Date: %{x}<br>"
+                + "Acceptances: %{y}<br>"
+                + "<extra></extra>",
             ),
             row=1,
             col=1,
@@ -67,9 +68,7 @@ def create_dashboard(completions_data: list[dict[str, Any]]) -> None:
 
     # 2. Accepted Lines of Code by Editor (Pie Chart)
     editor_accepted_lines = (
-        df.groupby("editor")["total_code_lines_accepted"]
-        .sum()
-        .reset_index()
+        df.groupby("editor")["total_code_lines_accepted"].sum().reset_index()
     )
 
     fig.add_trace(
@@ -77,10 +76,10 @@ def create_dashboard(completions_data: list[dict[str, Any]]) -> None:
             labels=editor_accepted_lines["editor"],
             values=editor_accepted_lines["total_code_lines_accepted"],
             name="Accepted Lines",
-            hovertemplate="<b>%{label}</b><br>" +
-                          "Lines: %{value}<br>" +
-                          "Percentage: %{percent}<br>" +
-                          "<extra></extra>"
+            hovertemplate="<b>%{label}</b><br>"
+            + "Lines: %{value}<br>"
+            + "Percentage: %{percent}<br>"
+            + "<extra></extra>",
         ),
         row=1,
         col=2,
@@ -89,24 +88,26 @@ def create_dashboard(completions_data: list[dict[str, Any]]) -> None:
     # 3. Unique Active Users Per Day
     # Get unique active users per day from the original daily stats
     daily_users = []
-    for daily_stat in df.groupby('date'):
+    for daily_stat in df.groupby("date"):
         date = daily_stat[0]
         # Sum total_engaged_users across all editors for this date
-        total_users = daily_stat[1]['total_engaged_users'].max()  # Should be same across all rows for a date
-        daily_users.append({'date': date, 'active_users': total_users})
-    
+        total_users = daily_stat[1][
+            "total_engaged_users"
+        ].max()  # Should be same across all rows for a date
+        daily_users.append({"date": date, "active_users": total_users})
+
     daily_users_df = pd.DataFrame(daily_users)
-    
+
     fig.add_trace(
         go.Bar(
             x=daily_users_df["date"],
             y=daily_users_df["active_users"],
             name="Active Users",
             legendgroup="group3",
-            hovertemplate="<b>Active Users</b><br>" +
-                          "Date: %{x}<br>" +
-                          "Users: %{y}<br>" +
-                          "<extra></extra>"
+            hovertemplate="<b>Active Users</b><br>"
+            + "Date: %{x}<br>"
+            + "Users: %{y}<br>"
+            + "<extra></extra>",
         ),
         row=2,
         col=1,
@@ -130,9 +131,9 @@ def create_dashboard(completions_data: list[dict[str, Any]]) -> None:
             y=language_rates["acceptance_rate"],
             name="Acceptance Rate (%)",
             legendgroup="group4",
-            hovertemplate="<b>%{x}</b><br>" +
-                          "Acceptance Rate: %{y:.1f}%<br>" +
-                          "<extra></extra>"
+            hovertemplate="<b>%{x}</b><br>"
+            + "Acceptance Rate: %{y:.1f}%<br>"
+            + "<extra></extra>",
         ),
         row=2,
         col=2,
@@ -144,27 +145,27 @@ def create_dashboard(completions_data: list[dict[str, Any]]) -> None:
         title_text=f"GitHub Copilot Usage Dashboard<br><sub>{timeframe}</sub>",
         title_x=0.5,
         showlegend=True,
-        barmode='stack'  # Make bars stack
+        barmode="stack",  # Make bars stack
     )
 
     # Update axes labels
     fig.update_xaxes(
-        title_text="Date", 
-        row=1, 
+        title_text="Date",
+        row=1,
         col=1,
         tickformat="%m/%d",  # Show as MM/DD format
-        tickangle=45  # Rotate labels for better readability
+        tickangle=45,  # Rotate labels for better readability
     )
     fig.update_yaxes(title_text="Code Acceptances", row=1, col=1)
 
     # Note: Pie chart doesn't need axis labels
-    
+
     fig.update_xaxes(
-        title_text="Date", 
-        row=2, 
+        title_text="Date",
+        row=2,
         col=1,
         tickformat="%m/%d",  # Show as MM/DD format
-        tickangle=45  # Rotate labels for better readability
+        tickangle=45,  # Rotate labels for better readability
     )
     fig.update_yaxes(title_text="Active Users", row=2, col=1)
 
@@ -172,14 +173,16 @@ def create_dashboard(completions_data: list[dict[str, Any]]) -> None:
     fig.update_yaxes(title_text="Acceptance Rate (%)", row=2, col=2)
 
     # Save and open dashboard
-    output_file = "copilot_dashboard.html"
+    output_file = "dashboard.html"
     pyo.plot(fig, filename=output_file, auto_open=False)
 
     print(f"Dashboard saved as '{output_file}'")
 
     # Open in browser
     try:
-        webbrowser.open(f"file://{output_file}")
+        # Get absolute path for file:// URL
+        abs_path = os.path.abspath(output_file)
+        webbrowser.open(f"file://{abs_path}")
         print("Dashboard opened in browser")
     except Exception as e:
         print(f"Could not open browser automatically: {e}")
